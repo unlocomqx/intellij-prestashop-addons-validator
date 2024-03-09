@@ -1,9 +1,9 @@
-package com.github.unlocomqx.intellijprestashopaddonsvalidator.services
+package com.github.unlocomqx.validator.services
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.github.unlocomqx.intellijprestashopaddonsvalidator.MyBundle
+import com.github.unlocomqx.validator.MyBundle
 
 @Service(Service.Level.PROJECT)
 class MyProjectService(project: Project) {

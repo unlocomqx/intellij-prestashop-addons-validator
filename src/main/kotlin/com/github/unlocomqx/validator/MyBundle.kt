@@ -1,4 +1,4 @@
-package com.github.unlocomqx.intellijprestashopaddonsvalidator
+package com.github.unlocomqx.validator
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

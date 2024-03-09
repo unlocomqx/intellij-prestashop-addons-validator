@@ -1,4 +1,4 @@
-package com.github.unlocomqx.intellijprestashopaddonsvalidator.toolWindow
+package com.github.unlocomqx.validator.toolWindow
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
@@ -8,12 +8,12 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
-import com.github.unlocomqx.intellijprestashopaddonsvalidator.MyBundle
-import com.github.unlocomqx.intellijprestashopaddonsvalidator.services.MyProjectService
+import com.github.unlocomqx.validator.MyBundle
+import com.github.unlocomqx.validator.services.MyProjectService
 import javax.swing.JButton
 
 
-class MyToolWindowFactory : ToolWindowFactory {
+class Validator : ToolWindowFactory {
 
     init {
         thisLogger().warn("Don't forget to remove all non-needed sample code files with their corresponding registration entries in `plugin.xml`.")
