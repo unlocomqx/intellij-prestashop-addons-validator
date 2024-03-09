@@ -139,12 +139,11 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             val resultName = ReqMatcher.matchResultReq(request?.url)
             if (resultName != null) {
                 thisLogger().warn("Upload request detected")
-                // read content of response
                 if (status != CefURLRequest.Status.UR_SUCCESS) {
                     ValidatorToolWindow.instance.addResult(resultName, "Error: $status")
                     return
                 }
-                // this is incorrect
+                // this is incorrect. I need to get the response body
                 ValidatorToolWindow.instance.addResult(resultName, response.toString())
                 return
             }
