@@ -11,10 +11,28 @@ class ReqMatcher {
             if (!url.contains(LocaleBundle.message("validator_url"))) {
                 return false
             }
-            // remove LocaleBundle.message("validator_url")
+
             val reqUrl = url.replace(LocaleBundle.message("validator_url"), "")
             val regex = """module/\d+/validate$""".toRegex()
             return regex.matches(reqUrl)
+        }
+
+        fun matchResultReq(url: String?): String? {
+            if (url.isNullOrBlank()) {
+                return null
+            }
+            if (!url.contains(LocaleBundle.message("validator_url"))) {
+                return null
+            }
+
+            val reqUrl = url.replace(LocaleBundle.message("validator_url"), "")
+            val regex = """module/\d+/validate/(\w+)\?""".toRegex()
+            val matches = regex.find(reqUrl)
+            if (matches != null) {
+                val (result) = matches.destructured
+                return result
+            }
+            return null
         }
     }
 

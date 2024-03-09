@@ -12,5 +12,8 @@ class RequestDetectionTest : BasePlatformTestCase() {
         TestCase.assertTrue(ReqMatcher.matchValidateReq(LocaleBundle.message("validator_url") + "module/1/validate"))
     }
 
-    override fun getTestDataPath() = "src/test/testData/rename"
+    fun testMatchResultRequest() {
+        TestCase.assertEquals(ReqMatcher.matchResultReq(LocaleBundle.message("validator_url") + "module/3464372/validate/warmup?_=1710009684885"), "warmup")
+        TestCase.assertEquals(ReqMatcher.matchResultReq(LocaleBundle.message("validator_url") + "module/3464372/validate/security?_=1710009684885"), "security")
+    }
 }
