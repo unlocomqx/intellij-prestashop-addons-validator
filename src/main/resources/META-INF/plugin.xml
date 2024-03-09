@@ -9,7 +9,11 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.unlocomqx.validator.toolWindow.Validator" id="PrestaShopValidator"/>
+        <toolWindow factoryClass="com.github.unlocomqx.validator.toolWindow.ValidatorToolWindowFactory"
+                    id="PrestaShopValidator"
+                    anchor="bottom"
+                    secondary="true"
+        />
     </extensions>
 
     <applicationListeners>
