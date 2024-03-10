@@ -14,15 +14,18 @@ import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
-import org.cef.handler.CefRequestHandlerAdapter
-import org.cef.handler.CefResourceRequestHandler
-import org.cef.handler.CefResourceRequestHandlerAdapter
+import org.cef.callback.CefCallback
+import org.cef.handler.*
 import org.cef.misc.BoolRef
 import org.cef.network.CefRequest
-import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
 import java.awt.Font
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URI
 import javax.swing.BoxLayout
+
 
 class ValidatorToolWindowFactory : ToolWindowFactory {
     init {
@@ -76,7 +79,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         }
 
         fun hideBrowser() {
-            browserPanel.isVisible = false
+//            browserPanel.isVisible = false
         }
 
         fun addResult(name: String, result: String) {
@@ -85,25 +88,6 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
     }
 
     class AssetRequestHandler() : CefRequestHandlerAdapter() {
-        override fun onBeforeBrowse(
-            browser: CefBrowser?,
-            frame: CefFrame?,
-            request: CefRequest?,
-            user_gesture: Boolean,
-            is_redirect: Boolean
-        ): Boolean {
-            return false
-        }
-
-        override fun onOpenURLFromTab(
-            browser: CefBrowser?,
-            frame: CefFrame?,
-            target_url: String?,
-            user_gesture: Boolean
-        ): Boolean {
-            return true
-        }
-
         override fun getResourceRequestHandler(
             browser: CefBrowser?,
             frame: CefFrame?,
@@ -118,37 +102,65 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
     }
 
     class ResourceRequestHandler : CefResourceRequestHandlerAdapter() {
-        override fun onResourceLoadComplete(
+        override fun getResourceHandler(
             browser: CefBrowser?,
             frame: CefFrame?,
-            request: CefRequest?,
-            response: CefResponse?,
-            status: CefURLRequest.Status?,
-            receivedContentLength: Long
-        ) {
+            request: CefRequest?
+        ): CefResourceHandler {
             if (request?.url?.contains("/validate") == false) {
-                return
+                return super.getResourceHandler(browser, frame, request)
             }
 
             if (ReqMatcher.matchValidateReq(request?.url)) {
-                thisLogger().warn("Validate request detected")
                 ValidatorToolWindow.instance.hideBrowser()
-                return
+                return super.getResourceHandler(browser, frame, request)
             }
 
             val resultName = ReqMatcher.matchResultReq(request?.url)
             if (resultName != null) {
-                thisLogger().warn("Upload request detected")
-                if (status != CefURLRequest.Status.UR_SUCCESS) {
-                    ValidatorToolWindow.instance.addResult(resultName, "Error: $status")
-                    return
-                }
-                // this is incorrect. I need to get the response body
-                ValidatorToolWindow.instance.addResult(resultName, response.toString())
-                return
+                return ValidatorResultResourceHandler()
             }
 
-            super.onResourceLoadComplete(browser, frame, request, response, status, receivedContentLength)
+            return super.getResourceHandler(browser, frame, request)
+        }
+
+        class ValidatorResultResourceHandler : CefResourceHandlerAdapter() {
+            override fun processRequest(request: CefRequest?, callback: CefCallback?): Boolean {
+                if (request?.url == null) {
+                    callback?.cancel()
+                    return false
+                }
+
+                val resultName = ReqMatcher.matchResultReq(request?.url)
+                if (resultName == null) {
+                    callback?.cancel()
+                    return false
+                }
+
+                val url = URI(request.url).toURL()
+                // make request to server
+                val con: HttpURLConnection = url.openConnection() as HttpURLConnection
+                con.requestMethod = "GET";
+                con.setRequestProperty("Cookie", request.getHeaderByName("Cookie"))
+                val responseCode = con.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                    val reader = BufferedReader(InputStreamReader(con.inputStream))
+                    var inputLine: String?
+                    val response = StringBuffer()
+
+                    while ((reader.readLine().also { inputLine = it }) != null) {
+                        response.append(inputLine)
+                    }
+                    reader.close()
+
+                    // print result
+                    ValidatorToolWindow.instance.addResult(resultName, response.toString())
+                } else {
+                    println("GET request did not work.")
+                }
+                callback?.cancel()
+                return false
+            }
         }
     }
 
