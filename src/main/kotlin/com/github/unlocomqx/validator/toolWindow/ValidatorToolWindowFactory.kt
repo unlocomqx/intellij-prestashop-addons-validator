@@ -189,18 +189,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         browser.cefBrowser.loadURL(LocaleBundle.message("validator_url"))
                         showBrowser()
                         results = emptyMap()
-                        val root = treeModel.root as DefaultMutableTreeNode
-//                        for (i in 0 until treeModel.getChildCount(root)) {
-//                            val sectionNode = treeModel.getChild(root, i) as DefaultMutableTreeNode
-//                            for (j in 0 until treeModel.getChildCount(sectionNode)) {
-//                                treeModel.removeNodeFromParent(
-//                                    treeModel.getChild(
-//                                        sectionNode,
-//                                        j
-//                                    ) as DefaultMutableTreeNode
-//                                )
-//                            }
-//                        }
+                        initTreeModel()
                     }
                 }, GridBagConstraints().apply {
                     anchor = GridBagConstraints.NORTHWEST
@@ -216,16 +205,25 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                     gridx = 0
                 })
 
-                sections.forEach { (_, value) ->
-                    val sectionNode = DefaultMutableTreeNode(ValidatorSection(value, "loading"))
-                    treeModel.insertNodeInto(
-                        sectionNode,
-                        treeModel.root as DefaultMutableTreeNode,
-                        treeModel.getChildCount(treeModel.root)
-                    )
-                }
+                initTreeModel()
             }
             add(resultsPanel)
+        }
+
+        private fun initTreeModel() {
+            // remove all nodes
+            val root = treeModel.root as DefaultMutableTreeNode
+            root.removeAllChildren()
+            treeModel.reload()
+
+            sections.forEach { (_, value) ->
+                val sectionNode = DefaultMutableTreeNode(ValidatorSection(value, "loading"))
+                treeModel.insertNodeInto(
+                    sectionNode,
+                    treeModel.root as DefaultMutableTreeNode,
+                    treeModel.getChildCount(treeModel.root)
+                )
+            }
         }
 
         fun hideBrowser() {
