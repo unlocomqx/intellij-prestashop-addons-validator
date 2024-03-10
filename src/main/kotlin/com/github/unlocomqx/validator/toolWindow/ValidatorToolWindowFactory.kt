@@ -12,20 +12,39 @@ import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
+import com.intellij.ui.treeStructure.Tree
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefCallback
 import org.cef.handler.*
 import org.cef.misc.BoolRef
 import org.cef.network.CefRequest
-import org.cef.network.CefURLRequest
 import java.awt.Font
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
 import javax.swing.BoxLayout
+import javax.swing.GroupLayout.Alignment
+import javax.swing.JButton
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
 
+
+val sections = mapOf(
+    "warmup" to "Warmup",
+    "structure" to "Structure",
+    "errors" to "Errors",
+    "compatibility" to "Compatibility",
+    "requirements" to "Requirements",
+    "optimizations" to "Optimizations",
+    "traslations" to "Translations",
+    "licences" to "Licences",
+    "security" to "Security",
+    "standards" to "Standards"
+)
 
 class ValidatorToolWindowFactory : ToolWindowFactory {
     init {
@@ -52,14 +71,29 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             }
         }
 
-        private val results = emptyMap<String, String>()
+        private var results = emptyMap<String, String>()
 
         private val browserPanel = JBPanel<JBPanel<*>>().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             alignmentX = JBPanel.CENTER_ALIGNMENT
         }
 
+        private val resultsPanel = JBPanel<JBPanel<*>>().apply {
+            layout = GridBagLayout().apply {
+                alignmentY = JBPanel.TOP_ALIGNMENT
+            }
+            alignmentX = JBPanel.LEFT_ALIGNMENT
+        }
+
+        private val treeModel: DefaultTreeModel = DefaultTreeModel(DefaultMutableTreeNode("Results"))
+        private val myTree: Tree = Tree().apply {
+            model = treeModel
+        }
+
         fun getContent() = JBPanel<JBPanel<*>>().apply {
+            layout = BoxLayout(this, BoxLayout.Y_AXIS)
+            alignmentX = JBPanel.CENTER_ALIGNMENT
+
             val cefApp = JBCefApp.getInstance()
             val cefClient = cefApp.createClient()
             val browser = JBCefBrowserBuilder()
@@ -68,6 +102,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 .build()
             cefClient.addRequestHandler(AssetRequestHandler(), browser.cefBrowser)
             browserPanel.apply {
+                isVisible = false
                 add(JBLabel().apply {
                     text = LocaleBundle.message("start_upload")
                     alignmentX = JBLabel.CENTER_ALIGNMENT
@@ -76,14 +111,59 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 add(browser.component)
             }
             add(browserPanel)
+
+            resultsPanel.apply {
+                add(JButton().apply {
+                    text = LocaleBundle.message("cancel")
+                    addActionListener {
+                        browser.cefBrowser.loadURL(LocaleBundle.message("validator_url"))
+                        showBrowser()
+                    }
+                }, GridBagConstraints().apply {
+                    anchor = GridBagConstraints.NORTHWEST
+                })
+                add(myTree, GridBagConstraints().apply {
+                    anchor = GridBagConstraints.NORTHWEST
+                    fill = GridBagConstraints.HORIZONTAL
+                    weightx = 1.0
+                    weighty = 1.0
+                    gridx = 0
+                })
+
+                sections.forEach { (key, value) ->
+                    val sectionNode = DefaultMutableTreeNode(value)
+                    treeModel.insertNodeInto(
+                        sectionNode,
+                        treeModel.root as DefaultMutableTreeNode,
+                        treeModel.getChildCount(treeModel.root)
+                    )
+                    results.forEach { (name, result) ->
+                        if (name.contains(key)) {
+                            val resultNode = DefaultMutableTreeNode(result)
+                            treeModel.insertNodeInto(resultNode, sectionNode, treeModel.getChildCount(sectionNode))
+                        }
+                    }
+                }
+            }
+            add(resultsPanel)
         }
 
         fun hideBrowser() {
-//            browserPanel.isVisible = false
+            browserPanel.isVisible = false
+            resultsPanel.isVisible = true
+        }
+
+        fun showBrowser() {
+            browserPanel.isVisible = true
+            resultsPanel.isVisible = false
         }
 
         fun addResult(name: String, result: String) {
             results.plus(Pair(name, result))
+        }
+
+        fun clearResults() {
+            results = emptyMap<String, String>()
         }
     }
 
