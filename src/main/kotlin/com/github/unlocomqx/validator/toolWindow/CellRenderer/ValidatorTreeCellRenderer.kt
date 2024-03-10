@@ -119,6 +119,7 @@ class ValidatorTreeCellRenderer : ColoredTreeCellRenderer() {
             val path = jsonObject.getString("file")
             val line = jsonObject.getInt("line")
             val virtualFile = userObject.virtualFile
+            append("${jsonObject.getString("message")} - ")
             append(
                 "$path:$line",
                 if (virtualFile != null) SimpleTextAttributes.LINK_ATTRIBUTES else SimpleTextAttributes.SIMPLE_CELL_ATTRIBUTES
