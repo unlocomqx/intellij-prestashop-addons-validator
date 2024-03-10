@@ -2,6 +2,7 @@ package com.github.unlocomqx.validator.toolWindow
 
 import com.github.unlocomqx.validator.LocaleBundle
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorFile
+import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorSection
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorTreeCellRenderer
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.CodeNodesBuilder
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.FilesNodesBuilder
@@ -10,8 +11,6 @@ import com.github.unlocomqx.validator.utils.ReqMatcher
 import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.DoubleClickListener
@@ -30,7 +29,6 @@ import org.cef.handler.*
 import org.cef.misc.BoolRef
 import org.cef.network.CefRequest
 import org.codehaus.jettison.json.JSONObject
-import org.eclipse.jgit.lib.ObjectChecker.tree
 import java.awt.Font
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
@@ -63,7 +61,7 @@ val sections = mapOf(
 val treeNodesBuilders = mapOf(
     "requirements" to FilesNodesBuilder::class,
     "structure" to FilesNodesBuilder::class,
-    "errors" to FilesNodesBuilder::class,
+    "errors" to CodeNodesBuilder::class,
     "compatibility" to FilesNodesBuilder::class,
     "optimizations" to FilesNodesBuilder::class,
     "translations" to FilesNodesBuilder::class,
@@ -122,7 +120,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         val node =
                             (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
                         val nodeInfo = node.userObject
-                        if (nodeInfo is ValidatorFile){
+                        if (nodeInfo is ValidatorFile) {
                             FileHelper.navigateToFile(nodeInfo.path)
                         }
                     }
@@ -136,7 +134,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         val node =
                             (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
                         val nodeInfo = node.userObject
-                        if (nodeInfo is ValidatorFile){
+                        if (nodeInfo is ValidatorFile) {
                             FileHelper.navigateToFile(nodeInfo.path)
                         }
                     }
@@ -173,12 +171,17 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         showBrowser()
                         results = emptyMap()
                         val root = treeModel.root as DefaultMutableTreeNode
-                        for (i in 0 until treeModel.getChildCount(root)) {
-                            val sectionNode = treeModel.getChild(root, i) as DefaultMutableTreeNode
-                            for (j in 0 until treeModel.getChildCount(sectionNode)) {
-                                treeModel.removeNodeFromParent(treeModel.getChild(sectionNode, j) as DefaultMutableTreeNode)
-                            }
-                        }
+//                        for (i in 0 until treeModel.getChildCount(root)) {
+//                            val sectionNode = treeModel.getChild(root, i) as DefaultMutableTreeNode
+//                            for (j in 0 until treeModel.getChildCount(sectionNode)) {
+//                                treeModel.removeNodeFromParent(
+//                                    treeModel.getChild(
+//                                        sectionNode,
+//                                        j
+//                                    ) as DefaultMutableTreeNode
+//                                )
+//                            }
+//                        }
                     }
                 }, GridBagConstraints().apply {
                     anchor = GridBagConstraints.NORTHWEST
@@ -195,7 +198,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 })
 
                 sections.forEach { (_, value) ->
-                    val sectionNode = DefaultMutableTreeNode(value)
+                    val sectionNode = DefaultMutableTreeNode(ValidatorSection(value, "loading"))
                     treeModel.insertNodeInto(
                         sectionNode,
                         treeModel.root as DefaultMutableTreeNode,
@@ -217,23 +220,37 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         }
 
         fun addResult(name: String, result: String) {
+            if (sections.keys.indexOf(name) == -1) {
+                return
+            }
+
             results.plus(Pair(name, result))
 
-             try {
-               val jsonObject =  JSONObject(result)
-                 val builder = treeNodesBuilders[name]
-                 if (builder != null) {
-                     val builderInstance = builder.createInstance()
-                     val nodes = builderInstance.buildNodes(name, jsonObject)
-                     val sectionNode = treeModel.getChild(treeModel.root, sections.keys.indexOf(name))
-                     nodes.forEach {
-                         treeModel.insertNodeInto(
-                             it,
-                             sectionNode as DefaultMutableTreeNode,
-                             treeModel.getChildCount(sectionNode)
-                         )
-                     }
-                 }
+            // update section state
+            val sectionNode = treeModel.getChild(treeModel.root, sections.keys.indexOf(name)) as DefaultMutableTreeNode
+            val section = sectionNode.userObject as ValidatorSection
+            section.state = if(result == "[]") "success" else "error"
+            treeModel.nodeChanged(sectionNode)
+
+            if (result == "[]") {
+                return
+            }
+
+            try {
+                val jsonObject = JSONObject(result)
+                val builder = treeNodesBuilders[name]
+                if (builder != null) {
+                    val builderInstance = builder.createInstance()
+                    val nodes = builderInstance.buildNodes(name, jsonObject)
+                    val sectionNode = treeModel.getChild(treeModel.root, sections.keys.indexOf(name))
+                    nodes.forEach {
+                        treeModel.insertNodeInto(
+                            it,
+                            sectionNode as DefaultMutableTreeNode,
+                            treeModel.getChildCount(sectionNode)
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 thisLogger().warn("Error while parsing result", e)
             }

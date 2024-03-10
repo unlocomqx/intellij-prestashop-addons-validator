@@ -1,6 +1,7 @@
 package com.github.unlocomqx.validator.toolWindow.NodesBuilders
 
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorFile
+import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorLine
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorMessage
 import org.codehaus.jettison.json.JSONObject
 import javax.swing.tree.DefaultMutableTreeNode
@@ -46,12 +47,22 @@ class CodeNodesBuilder : NodesBuilder {
         } catch (e: Exception) {
             return mutableListOf()
         }
-        val errors = files.keys()
         val nodes = mutableListOf<DefaultMutableTreeNode>()
-        while (errors.hasNext()) {
-            val error = errors.next()
-            val errorNode = DefaultMutableTreeNode(error)
-            nodes.add(errorNode)
+        while (files.keys().hasNext()) {
+            val file = files.keys().next() as String
+            val fileMessages = files.getJSONObject(file)
+            val messages = fileMessages.getJSONObject("messages")
+            while (messages.keys().hasNext()) {
+                val message = messages.keys().next() as String
+                val messageContent = messages.getJSONObject(message)
+                val type = messageContent.getString("type")
+                val lines = messageContent.getJSONArray("content")
+                var linesArray = Array(lines.length()) { lines.getJSONObject(it) }
+                linesArray.forEach {
+                    val lineNode = DefaultMutableTreeNode(ValidatorLine(it))
+                    nodes.add(lineNode)
+                }
+            }
         }
         return nodes
     }
