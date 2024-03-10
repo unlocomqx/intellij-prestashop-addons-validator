@@ -129,6 +129,18 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 }
             }.installOn(this)
 
+            this.addKeyListener(object : KeyAdapter() {
+                override fun keyTyped(e: KeyEvent) {
+                    if (e.keyChar.code == KeyEvent.VK_ENTER) {
+                        val node =
+                            (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
+                        val userObject = node.userObject
+                        if (userObject is ValidatorItemWithVirtualFile)
+                            FileHelper.navigateToFile(userObject)
+                    }
+                }
+            })
+
             this.addMouseMotionListener(object : MouseMotionAdapter() {
                 override fun mouseMoved(e: MouseEvent) {
                     val tree = e.component as JTree
@@ -144,18 +156,6 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                             // set cursor to default
                             tree.cursor = java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR)
                         }
-                    }
-                }
-            })
-
-            this.addKeyListener(object : KeyAdapter() {
-                override fun keyTyped(e: KeyEvent) {
-                    if (e.keyChar.code == KeyEvent.VK_ENTER) {
-                        val node =
-                            (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
-                        val userObject = node.userObject
-                        if (userObject is ValidatorItemWithVirtualFile)
-                            FileHelper.navigateToFile(userObject)
                     }
                 }
             })
