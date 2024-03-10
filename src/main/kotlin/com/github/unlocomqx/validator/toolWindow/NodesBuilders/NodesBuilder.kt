@@ -48,12 +48,14 @@ class CodeNodesBuilder : NodesBuilder {
             return mutableListOf()
         }
         val nodes = mutableListOf<DefaultMutableTreeNode>()
-        while (files.keys().hasNext()) {
-            val file = files.keys().next() as String
+        val fileKeys = files.keys()
+        while (fileKeys.hasNext()) {
+            val file = fileKeys.next() as String
             val fileMessages = files.getJSONObject(file)
             val messages = fileMessages.getJSONObject("messages")
-            while (messages.keys().hasNext()) {
-                val message = messages.keys().next() as String
+            val messageKeys = messages.keys()
+            while (messageKeys.hasNext()) {
+                val message = messageKeys.next() as String
                 val messageContent = messages.getJSONObject(message)
                 val type = messageContent.getString("type")
                 val lines = messageContent.getJSONArray("content")

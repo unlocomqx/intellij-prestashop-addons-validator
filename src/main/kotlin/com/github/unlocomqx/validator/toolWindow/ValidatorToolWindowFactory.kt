@@ -1,7 +1,6 @@
 package com.github.unlocomqx.validator.toolWindow
 
 import com.github.unlocomqx.validator.LocaleBundle
-import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorFile
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorSection
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorTreeCellRenderer
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.CodeNodesBuilder
@@ -120,9 +119,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         val node =
                             (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
                         val nodeInfo = node.userObject
-                        if (nodeInfo is ValidatorFile) {
-                            FileHelper.navigateToFile(nodeInfo.path)
-                        }
+                        FileHelper.navigateToFile(nodeInfo)
                     }
                     return false
                 }
@@ -133,10 +130,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                     if (e.keyChar.code == KeyEvent.VK_ENTER) {
                         val node =
                             (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
-                        val nodeInfo = node.userObject
-                        if (nodeInfo is ValidatorFile) {
-                            FileHelper.navigateToFile(nodeInfo.path)
-                        }
+                        FileHelper.navigateToFile(node.userObject)
                     }
                 }
             })
@@ -229,7 +223,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             // update section state
             val sectionNode = treeModel.getChild(treeModel.root, sections.keys.indexOf(name)) as DefaultMutableTreeNode
             val section = sectionNode.userObject as ValidatorSection
-            section.state = if(result == "[]") "success" else "error"
+            section.state = if (result == "[]") "success" else "error"
             treeModel.nodeChanged(sectionNode)
 
             if (result == "[]") {

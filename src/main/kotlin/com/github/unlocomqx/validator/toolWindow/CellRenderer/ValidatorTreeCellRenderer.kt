@@ -115,10 +115,11 @@ class ValidatorTreeCellRenderer : ColoredTreeCellRenderer() {
         if (userObject is ValidatorLine) {
             val jsonObject = userObject.jsonObject
             val path = jsonObject.getString("file")
+            val line = jsonObject.getInt("line")
             val fullPath: Path = Path.of(ProjectManager.getInstance().openProjects[0].basePath, path)
             val virtualFile = LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString())
             append(
-                path,
+                "$path:$line",
                 if (virtualFile != null) SimpleTextAttributes.LINK_ATTRIBUTES else SimpleTextAttributes.SIMPLE_CELL_ATTRIBUTES
             )
             icon = userObject.icon
