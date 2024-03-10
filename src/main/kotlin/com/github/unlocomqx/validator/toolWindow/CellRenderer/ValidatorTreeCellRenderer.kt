@@ -20,9 +20,9 @@ class ValidatorSection(var label: String, var state: String) {
         get() {
             return when (state) {
                 "success" -> AllIcons.General.InspectionsOK
-                "error" -> AllIcons.Toolwindows.Problems
+                "error" -> AllIcons.General.Error
                 "warning" -> AllIcons.General.Warning
-                "loading" -> AllIcons.Toolwindows.SettingSync
+                "loading" -> AllIcons.General.InlineRefresh
                 else -> AllIcons.Toolwindows.ToolWindowProblemsEmpty
             }
         }
