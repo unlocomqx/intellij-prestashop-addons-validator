@@ -2,6 +2,7 @@ package com.github.unlocomqx.validator.toolWindow
 
 import com.github.unlocomqx.validator.LocaleBundle
 import com.github.unlocomqx.validator.utils.ReqMatcher
+import com.intellij.diff.comparison.expand
 import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
@@ -79,6 +80,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         }
 
         private val resultsPanel = JBPanel<JBPanel<*>>().apply {
+            isVisible = false
             layout = GridBagLayout().apply {
                 alignmentY = JBPanel.TOP_ALIGNMENT
             }
@@ -102,7 +104,6 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 .build()
             cefClient.addRequestHandler(AssetRequestHandler(), browser.cefBrowser)
             browserPanel.apply {
-                isVisible = false
                 add(JBLabel().apply {
                     text = LocaleBundle.message("start_upload")
                     alignmentX = JBLabel.CENTER_ALIGNMENT
@@ -137,12 +138,6 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         treeModel.root as DefaultMutableTreeNode,
                         treeModel.getChildCount(treeModel.root)
                     )
-                    results.forEach { (name, result) ->
-                        if (name.contains(key)) {
-                            val resultNode = DefaultMutableTreeNode(result)
-                            treeModel.insertNodeInto(resultNode, sectionNode, treeModel.getChildCount(sectionNode))
-                        }
-                    }
                 }
             }
             add(resultsPanel)
@@ -153,13 +148,17 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             resultsPanel.isVisible = true
         }
 
-        fun showBrowser() {
+        private fun showBrowser() {
             browserPanel.isVisible = true
             resultsPanel.isVisible = false
         }
 
         fun addResult(name: String, result: String) {
             results.plus(Pair(name, result))
+            val index = sections.keys.indexOf(name)
+            val sectionNode = treeModel.getChild(treeModel.root, index) as DefaultMutableTreeNode
+            val resultNode = DefaultMutableTreeNode(result)
+            treeModel.insertNodeInto(resultNode, sectionNode, treeModel.getChildCount(sectionNode))
         }
 
         fun clearResults() {
