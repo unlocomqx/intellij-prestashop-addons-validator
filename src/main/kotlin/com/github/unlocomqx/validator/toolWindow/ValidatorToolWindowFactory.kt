@@ -120,7 +120,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 override fun onDoubleClick(e: MouseEvent): Boolean {
                     if (e.clickCount == 2) {
                         val node =
-                            (e.source as Tree).getPathForLocation(e.x, e.y)?.lastPathComponent as DefaultMutableTreeNode
+                            (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
                         val nodeInfo = node.userObject
                         if (nodeInfo is ValidatorFile){
                             FileHelper.navigateToFile(nodeInfo.path)
@@ -133,7 +133,12 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             this.addKeyListener(object : KeyAdapter() {
                 override fun keyTyped(e: KeyEvent) {
                     if (e.keyChar.code == KeyEvent.VK_ENTER) {
-                        val a = 1
+                        val node =
+                            (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
+                        val nodeInfo = node.userObject
+                        if (nodeInfo is ValidatorFile){
+                            FileHelper.navigateToFile(nodeInfo.path)
+                        }
                     }
                 }
             })
