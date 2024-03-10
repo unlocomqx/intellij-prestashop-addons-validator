@@ -1,20 +1,16 @@
 package com.github.unlocomqx.validator.toolWindow
 
 import com.github.unlocomqx.validator.LocaleBundle
-import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorItemWithVirtualFile
+import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorDefaultTreeCellRenderer
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorSection
-import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorTreeCellRenderer
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.CodeNodesBuilder
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.FilesNodesBuilder
-import com.github.unlocomqx.validator.toolWindow.helpers.FileHelper
 import com.github.unlocomqx.validator.utils.ReqMatcher
 import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.intellij.ui.ClickListener
-import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
@@ -30,22 +26,17 @@ import org.cef.handler.*
 import org.cef.misc.BoolRef
 import org.cef.network.CefRequest
 import org.codehaus.jettison.json.JSONObject
-import java.awt.*
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import java.awt.event.MouseEvent
-import java.awt.event.MouseMotionAdapter
+import java.awt.Font
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
 import javax.swing.BoxLayout
 import javax.swing.JButton
-import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
-import javax.swing.tree.TreeNode
-import javax.swing.tree.TreePath
 import kotlin.reflect.full.createInstance
 
 
@@ -116,49 +107,49 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         private val treeModel: DefaultTreeModel = DefaultTreeModel(DefaultMutableTreeNode("Results"))
         private val myTree: Tree = Tree().apply {
             model = treeModel
-            cellRenderer = ValidatorTreeCellRenderer()
-            object: ClickListener() {
-                override fun onClick(e: MouseEvent, clickCount: Int): Boolean {
-                    if (clickCount == 1) {
-                        val node = (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
-                        val userObject = node.userObject
-                        if (userObject is ValidatorItemWithVirtualFile)
-                            FileHelper.navigateToFile(userObject)
-                    }
-                    return false
-                }
-            }.installOn(this)
+            cellRenderer = ValidatorDefaultTreeCellRenderer()
+//            object : ClickListener() {
+//                override fun onClick(e: MouseEvent, clickCount: Int): Boolean {
+//                    if (clickCount == 1) {
+//                        val node = (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
+//                        val userObject = node.userObject
+//                        if (userObject is ValidatorItemWithVirtualFile)
+//                            FileHelper.navigateToFile(userObject)
+//                    }
+//                    return false
+//                }
+//            }.installOn(this)
 
-            this.addKeyListener(object : KeyAdapter() {
-                override fun keyTyped(e: KeyEvent) {
-                    if (e.keyChar.code == KeyEvent.VK_ENTER) {
-                        val node =
-                            (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
-                        val userObject = node.userObject
-                        if (userObject is ValidatorItemWithVirtualFile)
-                            FileHelper.navigateToFile(userObject)
-                    }
-                }
-            })
+//            this.addKeyListener(object : KeyAdapter() {
+//                override fun keyTyped(e: KeyEvent) {
+//                    if (e.keyChar.code == KeyEvent.VK_ENTER) {
+//                        val node =
+//                            (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
+//                        val userObject = node.userObject
+//                        if (userObject is ValidatorItemWithVirtualFile)
+//                            FileHelper.navigateToFile(userObject)
+//                    }
+//                }
+//            })
 
-            this.addMouseMotionListener(object : MouseMotionAdapter() {
-                override fun mouseMoved(e: MouseEvent) {
-                    val tree = e.component as JTree
-                    val path: TreePath = tree.getClosestPathForLocation(e.x, e.y)
-                    val bounds: Rectangle = tree.getPathBounds(path)
-                    if (bounds.contains(e.point)) {
-                        val node = path.getLastPathComponent() as DefaultMutableTreeNode
-                        val nodeInfo = node.userObject
-                        if(nodeInfo is ValidatorItemWithVirtualFile && nodeInfo.virtualFile != null) {
-                            // set cursor to hand
-                            tree.cursor = java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)
-                        } else {
-                            // set cursor to default
-                            tree.cursor = java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR)
-                        }
-                    }
-                }
-            })
+//            this.addMouseMotionListener(object : MouseMotionAdapter() {
+//                override fun mouseMoved(e: MouseEvent) {
+//                    val tree = e.component as JTree
+//                    val path: TreePath = tree.getClosestPathForLocation(e.x, e.y)
+//                    val bounds: Rectangle = tree.getPathBounds(path)
+//                    if (bounds.contains(e.point)) {
+//                        val node = path.getLastPathComponent() as DefaultMutableTreeNode
+//                        val nodeInfo = node.userObject
+//                        if (nodeInfo is ValidatorItemWithVirtualFile && nodeInfo.virtualFile != null) {
+//                            // set cursor to hand
+//                            tree.cursor = java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)
+//                        } else {
+//                            // set cursor to default
+//                            tree.cursor = java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR)
+//                        }
+//                    }
+//                }
+//            })
         }
 
         fun getContent() = JBPanel<JBPanel<*>>().apply {
