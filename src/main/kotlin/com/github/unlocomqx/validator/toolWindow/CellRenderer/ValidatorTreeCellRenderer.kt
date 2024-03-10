@@ -1,16 +1,22 @@
 package com.github.unlocomqx.validator.toolWindow.CellRenderer
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.testFramework.utils.vfs.getFile
-import com.intellij.testFramework.utils.vfs.getPsiFile
+import com.intellij.ui.ClickListener
 import com.intellij.ui.ColoredTreeCellRenderer
+import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.SimpleTextAttributes
+import com.jetbrains.rd.swing.mouseClicked
 import java.awt.Color
+import java.awt.Component
+import java.awt.event.MouseEvent
+import java.nio.file.Path
 import javax.swing.Icon
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
+import kotlin.io.path.absolutePathString
 
 class ValidatorMessage(var message: String, var type: String) {
     val icon: Icon
@@ -35,8 +41,7 @@ class ValidatorMessage(var message: String, var type: String) {
 class ValidatorFile(var path: String) {
     val icon: Icon
         get() {
-            val virtualFile = LocalFileSystem.getInstance().findFileByPath(path)
-            return virtualFile?.getPsiFile(ProjectManager.getInstance().openProjects.get(0))?.getIcon(0) ?: AllIcons.FileTypes.Any_type
+            return FileTypeManager.getInstance().getFileTypeByFileName(path).icon
         }
 }
 
@@ -63,8 +68,17 @@ class ValidatorTreeCellRenderer : ColoredTreeCellRenderer() {
         }
 
         if (userObject is ValidatorFile) {
-            append(userObject.path, SimpleTextAttributes.LINK_ATTRIBUTES)
+            val fullPath: Path = Path.of(ProjectManager.getInstance().openProjects[0].basePath, userObject.path)
+            val virtualFile = LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString())
+
+            append(
+               userObject.path,
+                if (virtualFile != null) SimpleTextAttributes.LINK_ATTRIBUTES else SimpleTextAttributes.SIMPLE_CELL_ATTRIBUTES
+            )
             icon = userObject.icon
+            if (virtualFile != null) {
+                setToolTipText(virtualFile.path)
+            }
         }
     }
 }

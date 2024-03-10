@@ -1,15 +1,20 @@
 package com.github.unlocomqx.validator.toolWindow
 
 import com.github.unlocomqx.validator.LocaleBundle
+import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorFile
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorTreeCellRenderer
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.CodeNodesBuilder
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.FilesNodesBuilder
+import com.github.unlocomqx.validator.toolWindow.helpers.FileHelper
 import com.github.unlocomqx.validator.utils.ReqMatcher
 import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
@@ -25,9 +30,13 @@ import org.cef.handler.*
 import org.cef.misc.BoolRef
 import org.cef.network.CefRequest
 import org.codehaus.jettison.json.JSONObject
+import org.eclipse.jgit.lib.ObjectChecker.tree
 import java.awt.Font
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
+import java.awt.event.KeyAdapter
+import java.awt.event.KeyEvent
+import java.awt.event.MouseEvent
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -107,6 +116,27 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         private val myTree: Tree = Tree().apply {
             model = treeModel
             cellRenderer = ValidatorTreeCellRenderer()
+            object : DoubleClickListener() {
+                override fun onDoubleClick(e: MouseEvent): Boolean {
+                    if (e.clickCount == 2) {
+                        val node =
+                            (e.source as Tree).getPathForLocation(e.x, e.y)?.lastPathComponent as DefaultMutableTreeNode
+                        val nodeInfo = node.userObject
+                        if (nodeInfo is ValidatorFile){
+                            FileHelper.navigateToFile(nodeInfo.path)
+                        }
+                    }
+                    return false
+                }
+            }.installOn(this)
+
+            this.addKeyListener(object : KeyAdapter() {
+                override fun keyTyped(e: KeyEvent) {
+                    if (e.keyChar.code == KeyEvent.VK_ENTER) {
+                        val a = 1
+                    }
+                }
+            })
         }
 
         fun getContent() = JBPanel<JBPanel<*>>().apply {
