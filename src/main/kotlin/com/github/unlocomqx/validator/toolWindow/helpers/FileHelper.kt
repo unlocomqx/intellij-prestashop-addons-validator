@@ -29,9 +29,7 @@ class FileHelper {
             val project = ProjectManager.getInstance().openProjects[0]
             val fullPath: Path = Path.of(project.basePath, path)
 
-            val virtualFile = LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString())
-            if (virtualFile == null) return
-
+            val virtualFile = LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString()) ?: return
 
             OpenFileDescriptor(project, virtualFile, line, 0).navigate(true)
         }
