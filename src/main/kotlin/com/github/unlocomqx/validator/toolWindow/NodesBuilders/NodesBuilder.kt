@@ -1,5 +1,7 @@
 package com.github.unlocomqx.validator.toolWindow.NodesBuilders
 
+import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorFile
+import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorMessage
 import org.codehaus.jettison.json.JSONObject
 import javax.swing.tree.DefaultMutableTreeNode
 
@@ -20,8 +22,14 @@ class FilesNodesBuilder : NodesBuilder {
         val errors = files.keys()
         val nodes = mutableListOf<DefaultMutableTreeNode>()
         while (errors.hasNext()) {
-            val error = errors.next()
-            val errorNode = DefaultMutableTreeNode(error)
+            val error = errors.next() as String
+            val filesList = files.getJSONArray(error)
+            val filesArray = Array(filesList.length()) { filesList.getString(it) }
+            val errorNode = DefaultMutableTreeNode(ValidatorMessage(error, "error"))
+            filesArray.forEach {
+                val fileNode = DefaultMutableTreeNode(ValidatorFile(it))
+                errorNode.add(fileNode)
+            }
             nodes.add(errorNode)
         }
         return nodes

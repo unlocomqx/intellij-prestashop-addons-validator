@@ -1,6 +1,7 @@
 package com.github.unlocomqx.validator.toolWindow
 
 import com.github.unlocomqx.validator.LocaleBundle
+import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorTreeCellRenderer
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.CodeNodesBuilder
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.FilesNodesBuilder
 import com.github.unlocomqx.validator.utils.ReqMatcher
@@ -9,7 +10,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
@@ -17,6 +17,7 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
 import com.intellij.ui.treeStructure.Tree
+import com.intellij.util.ui.tree.TreeUtil
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefCallback
@@ -24,7 +25,6 @@ import org.cef.handler.*
 import org.cef.misc.BoolRef
 import org.cef.network.CefRequest
 import org.codehaus.jettison.json.JSONObject
-import java.awt.Color
 import java.awt.Font
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
@@ -106,6 +106,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         private val treeModel: DefaultTreeModel = DefaultTreeModel(DefaultMutableTreeNode("Results"))
         private val myTree: Tree = Tree().apply {
             model = treeModel
+            cellRenderer = ValidatorTreeCellRenderer()
         }
 
         fun getContent() = JBPanel<JBPanel<*>>().apply {
@@ -131,14 +132,23 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
 
             resultsPanel.apply {
                 add(JButton().apply {
-                    text = LocaleBundle.message("cancel")
+                    text = LocaleBundle.message("finish")
                     addActionListener {
                         browser.cefBrowser.loadURL(LocaleBundle.message("validator_url"))
                         showBrowser()
+                        results = emptyMap()
+                        val root = treeModel.root as DefaultMutableTreeNode
+                        for (i in 0 until treeModel.getChildCount(root)) {
+                            val sectionNode = treeModel.getChild(root, i) as DefaultMutableTreeNode
+                            for (j in 0 until treeModel.getChildCount(sectionNode)) {
+                                treeModel.removeNodeFromParent(treeModel.getChild(sectionNode, j) as DefaultMutableTreeNode)
+                            }
+                        }
                     }
                 }, GridBagConstraints().apply {
                     anchor = GridBagConstraints.NORTHWEST
                 })
+                TreeUtil.expandAll(myTree)
                 add(JBScrollPane(myTree).apply {
                     isVisible = true
                 }, GridBagConstraints().apply {
@@ -149,7 +159,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                     gridx = 0
                 })
 
-                sections.forEach { (key, value) ->
+                sections.forEach { (_, value) ->
                     val sectionNode = DefaultMutableTreeNode(value)
                     treeModel.insertNodeInto(
                         sectionNode,
