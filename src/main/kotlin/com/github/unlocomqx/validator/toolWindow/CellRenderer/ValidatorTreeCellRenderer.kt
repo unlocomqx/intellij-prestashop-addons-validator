@@ -4,22 +4,18 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.ui.ClickListener
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.ColoredTreeCellRenderer
-import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.SimpleTextAttributes
-import com.jetbrains.rd.swing.mouseClicked
 import org.codehaus.jettison.json.JSONObject
 import java.awt.Color
-import java.awt.Component
-import java.awt.event.MouseEvent
 import java.nio.file.Path
 import javax.swing.Icon
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import kotlin.io.path.absolutePathString
 
-class ValidatorSection(var label: String, var state : String) {
+class ValidatorSection(var label: String, var state: String) {
     val icon: Icon
         get() {
             return when (state) {
@@ -52,14 +48,24 @@ class ValidatorMessage(var message: String, var type: String) {
         }
 }
 
-class ValidatorFile(var path: String) {
+class ValidatorFile(var path: String) : ValidatorItemWithVirtualFile {
     val icon: Icon
         get() {
             return FileTypeManager.getInstance().getFileTypeByFileName(path).icon
         }
+
+    override val virtualFile: VirtualFile?
+        get() {
+            val fullPath: Path = Path.of(ProjectManager.getInstance().openProjects[0].basePath, path)
+            return LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString())
+        }
 }
 
-class ValidatorLine (var jsonObject: JSONObject) {
+interface ValidatorItemWithVirtualFile {
+    val virtualFile: VirtualFile?
+}
+
+class ValidatorLine(var jsonObject: JSONObject) : ValidatorItemWithVirtualFile {
     val icon: Icon
         get() {
             return when (jsonObject.get("type")) {
@@ -67,6 +73,13 @@ class ValidatorLine (var jsonObject: JSONObject) {
                 "warning" -> AllIcons.General.Warning
                 else -> AllIcons.General.Information
             }
+        }
+
+    override val virtualFile: VirtualFile?
+        get() {
+            val fullPath: Path =
+                Path.of(ProjectManager.getInstance().openProjects[0].basePath, jsonObject.getString("file"))
+            return LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString())
         }
 }
 
@@ -99,11 +112,9 @@ class ValidatorTreeCellRenderer : ColoredTreeCellRenderer() {
         }
 
         if (userObject is ValidatorFile) {
-            val fullPath: Path = Path.of(ProjectManager.getInstance().openProjects[0].basePath, userObject.path)
-            val virtualFile = LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString())
-
+            val virtualFile = userObject.virtualFile
             append(
-               userObject.path,
+                userObject.path,
                 if (virtualFile != null) SimpleTextAttributes.LINK_ATTRIBUTES else SimpleTextAttributes.SIMPLE_CELL_ATTRIBUTES
             )
             icon = userObject.icon
@@ -116,13 +127,15 @@ class ValidatorTreeCellRenderer : ColoredTreeCellRenderer() {
             val jsonObject = userObject.jsonObject
             val path = jsonObject.getString("file")
             val line = jsonObject.getInt("line")
-            val fullPath: Path = Path.of(ProjectManager.getInstance().openProjects[0].basePath, path)
-            val virtualFile = LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString())
+            val virtualFile = userObject.virtualFile
             append(
                 "$path:$line",
                 if (virtualFile != null) SimpleTextAttributes.LINK_ATTRIBUTES else SimpleTextAttributes.SIMPLE_CELL_ATTRIBUTES
             )
             icon = userObject.icon
+            if (virtualFile != null) {
+                setToolTipText(virtualFile.path)
+            }
         }
     }
 }
