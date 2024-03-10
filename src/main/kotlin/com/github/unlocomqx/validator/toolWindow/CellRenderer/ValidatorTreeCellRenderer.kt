@@ -19,11 +19,11 @@ class ValidatorSection(var label: String, var state: String) {
     val icon: Icon
         get() {
             return when (state) {
-                "success" -> AllIcons.General.Information
-                "error" -> AllIcons.General.Error
+                "success" -> AllIcons.General.InspectionsOK
+                "error" -> AllIcons.Toolwindows.Problems
                 "warning" -> AllIcons.General.Warning
-                "loading" -> AllIcons.General.InlineRefresh
-                else -> AllIcons.General.Information
+                "loading" -> AllIcons.Toolwindows.SettingSync
+                else -> AllIcons.Toolwindows.ToolWindowProblemsEmpty
             }
         }
 }
