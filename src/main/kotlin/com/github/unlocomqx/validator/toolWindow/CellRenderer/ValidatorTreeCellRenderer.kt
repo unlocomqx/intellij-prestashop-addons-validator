@@ -37,15 +37,6 @@ class ValidatorMessage(var message: String, var type: String) {
                 else -> AllIcons.General.Information
             }
         }
-
-    val color: Color
-        get() {
-            return when (type) {
-                "error" -> Color.red
-                "warning" -> Color.orange
-                else -> Color.green
-            }
-        }
 }
 
 class ValidatorFile(var path: String) : ValidatorItemWithVirtualFile {
