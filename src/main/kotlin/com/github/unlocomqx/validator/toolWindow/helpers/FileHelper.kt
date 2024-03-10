@@ -15,6 +15,8 @@ class FileHelper {
         fun navigateToFile(userObject: Any) {
             var path = ""
             var line = 0
+            var column = 0
+
             if (userObject is ValidatorFile) {
                 path = userObject.path
             }
@@ -22,6 +24,7 @@ class FileHelper {
             if (userObject is ValidatorLine) {
                 path = userObject.jsonObject.getString("file")
                 line = userObject.jsonObject.getInt("line") - 1
+                column = userObject.jsonObject.getInt("column") - 1
             }
 
             if (path.isEmpty()) return
@@ -31,7 +34,7 @@ class FileHelper {
 
             val virtualFile = LocalFileSystem.getInstance().findFileByPath(fullPath.absolutePathString()) ?: return
 
-            OpenFileDescriptor(project, virtualFile, line, 0).navigate(true)
+            OpenFileDescriptor(project, virtualFile, line, column).navigate(true)
         }
     }
 
