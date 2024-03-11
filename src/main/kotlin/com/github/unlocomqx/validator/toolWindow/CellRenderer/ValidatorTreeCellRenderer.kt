@@ -17,6 +17,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.nio.file.Path
 import javax.swing.Icon
+import javax.swing.JButton
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeCellRenderer
@@ -145,6 +146,14 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
                 })
                 add(JBLabel().apply {
                     text = "<html><a href=\"#navigate/$path:$line\">$path:$line</a></html>"
+                    addMouseListener(object : MouseAdapter() {
+                        override fun mouseClicked(e: MouseEvent) {
+                            FileHelper.navigateToFile(userObject)
+                        }
+                    })
+                })
+                add(JButton().apply {
+                    text = "TEST"
                     addMouseListener(object : MouseAdapter() {
                         override fun mouseClicked(e: MouseEvent) {
                             FileHelper.navigateToFile(userObject)
