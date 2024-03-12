@@ -15,6 +15,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
@@ -35,6 +36,7 @@ import java.net.HttpURLConnection
 import java.net.URI
 import javax.swing.BoxLayout
 import javax.swing.JButton
+import javax.swing.SwingConstants
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import kotlin.reflect.full.createInstance
@@ -111,6 +113,17 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             cellRenderer = ValidatorDefaultTreeCellRenderer()
         }
 
+        private val myTabbedPane = JBTabbedPane(SwingConstants.LEFT).apply {
+            alignmentX = JBTabbedPane.LEFT_ALIGNMENT
+            tabLayoutPolicy = JBTabbedPane.SCROLL_TAB_LAYOUT
+            sections.forEach { (_, value) ->
+                addTab(value, JBPanel<JBPanel<*>>().apply {
+                    layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                    alignmentX = JBPanel.LEFT_ALIGNMENT
+                })
+            }
+        }
+
         fun getContent() = JBPanel<JBPanel<*>>().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             alignmentX = JBPanel.CENTER_ALIGNMENT
@@ -123,6 +136,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 .build()
             cefClient.addRequestHandler(AssetRequestHandler(), browser.cefBrowser)
             browserPanel.apply {
+                add(myTabbedPane)
                 add(JBLabel().apply {
                     text = LocaleBundle.message("start_upload")
                     alignmentX = JBLabel.CENTER_ALIGNMENT
@@ -226,7 +240,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             }
         }
 
-        fun clearResults() {
+        private fun clearResults() {
             results = emptyMap<String, String>()
         }
 
