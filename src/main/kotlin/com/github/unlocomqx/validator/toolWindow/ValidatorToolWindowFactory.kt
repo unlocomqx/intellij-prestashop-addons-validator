@@ -17,10 +17,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
-import com.intellij.ui.treeStructure.treetable.ListTreeTableModel
-import com.intellij.ui.treeStructure.treetable.TreeColumnInfo
-import com.intellij.ui.treeStructure.treetable.TreeTable
-import com.intellij.ui.treeStructure.treetable.TreeTableModel
+import com.intellij.ui.treeStructure.treetable.*
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefCallback
@@ -146,7 +143,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 }, GridBagConstraints().apply {
                     anchor = GridBagConstraints.NORTHWEST
                 })
-//                TreeUtil.expandAll(myTree)
+
                 add(JBScrollPane(myTree).apply {
                     isVisible = true
                 }, GridBagConstraints().apply {
@@ -163,10 +160,8 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         }
 
         private fun initTreeModel() {
-            // remove all nodes
             val root = treeModel.root as DefaultMutableTreeNode
             root.removeAllChildren()
-//            treeModel.reload()
 
             sections.forEach { (_, value) ->
                 val sectionNode = DefaultMutableTreeNode(ValidatorSection(value, "idle"))
@@ -175,6 +170,9 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                     treeModel.getChildCount(treeModel.root)
                 )
             }
+
+            val expander = DefaultTreeTableExpander(myTree)
+            expander.expandAll()
         }
 
         fun hideBrowser() {

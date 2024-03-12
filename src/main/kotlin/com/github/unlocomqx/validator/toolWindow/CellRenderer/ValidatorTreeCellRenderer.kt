@@ -7,6 +7,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.ColoredTreeCellRenderer
+import com.intellij.ui.JBColor
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
@@ -94,6 +95,7 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
         val treeNode = value as DefaultMutableTreeNode
         val userObject = treeNode.userObject
         if (userObject is String) {
+            backgroundNonSelectionColor = JBColor.background()
             return super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
         }
 
@@ -102,6 +104,7 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
             val icon = userObject.icon
             val component = super.getTreeCellRendererComponent(tree, label, sel, expanded, leaf, row, hasFocus)
             setIcon(icon)
+            backgroundNonSelectionColor = JBColor.background()
             return component
         }
 
