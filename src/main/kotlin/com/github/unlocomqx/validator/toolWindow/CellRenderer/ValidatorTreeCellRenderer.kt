@@ -17,7 +17,6 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.nio.file.Path
 import javax.swing.Icon
-import javax.swing.JButton
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeCellRenderer
@@ -146,21 +145,13 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
                 })
                 add(JBLabel().apply {
                     text = "<html><a href=\"#navigate/$path:$line\">$path:$line</a></html>"
+                    cursor = java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)
                     addMouseListener(object : MouseAdapter() {
                         override fun mouseClicked(e: MouseEvent) {
                             FileHelper.navigateToFile(userObject)
                         }
                     })
                 })
-                add(JButton().apply {
-                    text = "TEST"
-                    addMouseListener(object : MouseAdapter() {
-                        override fun mouseClicked(e: MouseEvent) {
-                            FileHelper.navigateToFile(userObject)
-                        }
-                    })
-                })
-
                 addMouseListener(object : MouseAdapter() {
                     override fun mouseClicked(e: MouseEvent) {
                         FileHelper.navigateToFile(userObject)
@@ -182,7 +173,6 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
         var messageWithLinks: String = message
         // match words containing an underscore or more
         val matches = Regex("\\w+").findAll(message)
-        val fragments = mutableListOf<String>()
         for (match in matches) {
             // if contains underscore, it's a link
             if (match.value.contains("_")) {

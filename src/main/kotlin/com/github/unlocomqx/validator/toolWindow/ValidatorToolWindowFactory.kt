@@ -17,8 +17,10 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
-import com.intellij.ui.treeStructure.Tree
-import com.intellij.util.ui.tree.TreeUtil
+import com.intellij.ui.treeStructure.treetable.ListTreeTableModel
+import com.intellij.ui.treeStructure.treetable.TreeColumnInfo
+import com.intellij.ui.treeStructure.treetable.TreeTable
+import com.intellij.ui.treeStructure.treetable.TreeTableModel
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefCallback
@@ -36,7 +38,6 @@ import java.net.URI
 import javax.swing.BoxLayout
 import javax.swing.JButton
 import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.DefaultTreeModel
 import kotlin.reflect.full.createInstance
 
 
@@ -104,52 +105,12 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             alignmentX = JBPanel.LEFT_ALIGNMENT
         }
 
-        private val treeModel: DefaultTreeModel = DefaultTreeModel(DefaultMutableTreeNode("Results"))
-        private val myTree: Tree = Tree().apply {
-            model = treeModel
-            cellRenderer = ValidatorDefaultTreeCellRenderer()
-//            object : ClickListener() {
-//                override fun onClick(e: MouseEvent, clickCount: Int): Boolean {
-//                    if (clickCount == 1) {
-//                        val node = (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
-//                        val userObject = node.userObject
-//                        if (userObject is ValidatorItemWithVirtualFile)
-//                            FileHelper.navigateToFile(userObject)
-//                    }
-//                    return false
-//                }
-//            }.installOn(this)
-
-//            this.addKeyListener(object : KeyAdapter() {
-//                override fun keyTyped(e: KeyEvent) {
-//                    if (e.keyChar.code == KeyEvent.VK_ENTER) {
-//                        val node =
-//                            (e.source as Tree).lastSelectedPathComponent as DefaultMutableTreeNode
-//                        val userObject = node.userObject
-//                        if (userObject is ValidatorItemWithVirtualFile)
-//                            FileHelper.navigateToFile(userObject)
-//                    }
-//                }
-//            })
-
-//            this.addMouseMotionListener(object : MouseMotionAdapter() {
-//                override fun mouseMoved(e: MouseEvent) {
-//                    val tree = e.component as JTree
-//                    val path: TreePath = tree.getClosestPathForLocation(e.x, e.y)
-//                    val bounds: Rectangle = tree.getPathBounds(path)
-//                    if (bounds.contains(e.point)) {
-//                        val node = path.getLastPathComponent() as DefaultMutableTreeNode
-//                        val nodeInfo = node.userObject
-//                        if (nodeInfo is ValidatorItemWithVirtualFile && nodeInfo.virtualFile != null) {
-//                            // set cursor to hand
-//                            tree.cursor = java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)
-//                        } else {
-//                            // set cursor to default
-//                            tree.cursor = java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR)
-//                        }
-//                    }
-//                }
-//            })
+        private val treeModel: TreeTableModel =
+            ListTreeTableModel(DefaultMutableTreeNode("Results"), arrayOf(TreeColumnInfo("Results")))
+        private val myTree: TreeTable = TreeTable(treeModel).apply {
+            setRootVisible(true)
+            setTreeCellRenderer(ValidatorDefaultTreeCellRenderer())
+            background = null
         }
 
         fun getContent() = JBPanel<JBPanel<*>>().apply {
@@ -185,7 +146,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 }, GridBagConstraints().apply {
                     anchor = GridBagConstraints.NORTHWEST
                 })
-                TreeUtil.expandAll(myTree)
+//                TreeUtil.expandAll(myTree)
                 add(JBScrollPane(myTree).apply {
                     isVisible = true
                 }, GridBagConstraints().apply {
@@ -205,13 +166,12 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             // remove all nodes
             val root = treeModel.root as DefaultMutableTreeNode
             root.removeAllChildren()
-            treeModel.reload()
+//            treeModel.reload()
 
             sections.forEach { (_, value) ->
-                val sectionNode = DefaultMutableTreeNode(ValidatorSection(value, "loading"))
-                treeModel.insertNodeInto(
+                val sectionNode = DefaultMutableTreeNode(ValidatorSection(value, "idle"))
+                root.insert(
                     sectionNode,
-                    treeModel.root as DefaultMutableTreeNode,
                     treeModel.getChildCount(treeModel.root)
                 )
             }
@@ -238,7 +198,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             val sectionNode = treeModel.getChild(treeModel.root, sections.keys.indexOf(name)) as DefaultMutableTreeNode
             val section = sectionNode.userObject as ValidatorSection
             section.state = if (result == "[]") "success" else "error"
-            treeModel.nodeChanged(sectionNode)
+//            treeModel.nodeChanged(sectionNode)
 
             if (result == "[]") {
                 return
@@ -250,11 +210,11 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 if (builder != null) {
                     val builderInstance = builder.createInstance()
                     val nodes = builderInstance.buildNodes(name, jsonObject)
-                    val sectionNode = treeModel.getChild(treeModel.root, sections.keys.indexOf(name))
+                    val root = treeModel.root as DefaultMutableTreeNode
+                    val sectionNode = treeModel.getChild(root, sections.keys.indexOf(name)) as DefaultMutableTreeNode
                     nodes.forEach {
-                        treeModel.insertNodeInto(
+                        sectionNode.insert(
                             it,
-                            sectionNode as DefaultMutableTreeNode,
                             treeModel.getChildCount(sectionNode)
                         )
                     }
@@ -266,6 +226,17 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
 
         fun clearResults() {
             results = emptyMap<String, String>()
+        }
+
+        fun setState(state: String) {
+            myTree.setPaintBusy(state == "loading")
+        }
+
+        fun setSectionLoading(resultName: String, loading: Boolean) {
+            val sectionNode =
+                treeModel.getChild(treeModel.root, sections.keys.indexOf(resultName)) as DefaultMutableTreeNode
+            val section = sectionNode.userObject as ValidatorSection
+            section.state = if (loading) "loading" else "idle"
         }
     }
 
@@ -318,26 +289,38 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         return false
                     }
 
-                    val url = URI(request.url).toURL()
-                    // make request to server
-                    val con: HttpURLConnection = url.openConnection() as HttpURLConnection
-                    con.requestMethod = "GET";
-                    con.setRequestProperty("Cookie", request.getHeaderByName("Cookie"))
-                    val responseCode = con.responseCode
-                    if (responseCode == HttpURLConnection.HTTP_OK) { // success
-                        val reader = BufferedReader(InputStreamReader(con.inputStream))
-                        var inputLine: String?
-                        val response = StringBuffer()
+                    ValidatorToolWindow.instance.setState("loading")
+                    ValidatorToolWindow.instance.setSectionLoading(resultName, true)
 
-                        while ((reader.readLine().also { inputLine = it }) != null) {
-                            response.append(inputLine)
+                    try {
+                        val url = URI(request.url).toURL()
+                        // make request to server
+                        val con: HttpURLConnection = url.openConnection() as HttpURLConnection
+                        con.requestMethod = "GET";
+                        con.setRequestProperty("Cookie", request.getHeaderByName("Cookie"))
+                        val responseCode = con.responseCode
+                        if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                            val reader = BufferedReader(InputStreamReader(con.inputStream))
+                            var inputLine: String?
+                            val response = StringBuffer()
+
+                            while ((reader.readLine().also { inputLine = it }) != null) {
+                                response.append(inputLine)
+                            }
+                            reader.close()
+
+                            // print result
+                            ValidatorToolWindow.instance.addResult(resultName, response.toString())
+                        } else {
+                            ValidatorToolWindow.instance.setSectionLoading(resultName, false)
                         }
-                        reader.close()
-
-                        // print result
-                        ValidatorToolWindow.instance.addResult(resultName, response.toString())
-                    } else {
-                        println("GET request did not work.")
+                    } catch (e: Exception) {
+                        thisLogger().warn("Error while processing request", e)
+                        ValidatorToolWindow.instance.setSectionLoading(resultName, false)
+                        callback?.cancel()
+                        return false
+                    } finally {
+                        ValidatorToolWindow.instance.setState("idle")
                     }
                     callback?.cancel()
                     return false
