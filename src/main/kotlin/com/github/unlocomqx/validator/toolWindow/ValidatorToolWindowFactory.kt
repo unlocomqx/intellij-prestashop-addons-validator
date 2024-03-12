@@ -137,7 +137,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                     addActionListener {
                         browser.cefBrowser.loadURL(LocaleBundle.message("validator_url"))
                         showBrowser()
-                        results = emptyMap()
+                        clearResults()
                         initTreeModel()
                     }
                 }, GridBagConstraints().apply {
@@ -231,6 +231,9 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
         }
 
         fun setSectionLoading(resultName: String, loading: Boolean) {
+            if (sections.keys.indexOf(resultName) == -1) {
+                return
+            }
             val sectionNode =
                 treeModel.getChild(treeModel.root, sections.keys.indexOf(resultName)) as DefaultMutableTreeNode
             val section = sectionNode.userObject as ValidatorSection
@@ -248,6 +251,17 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             requestInitiator: String?,
             disableDefaultHandling: BoolRef?
         ): CefResourceRequestHandler? {
+            if (request?.url?.contains("/validate") == false) {
+                return null
+            }
+
+            if (ReqMatcher.matchValidateReq(request?.url)) {
+                ValidatorToolWindow.instance.hideBrowser()
+                return null
+            }
+
+            ReqMatcher.matchResultReq(request?.url) ?: return null
+
             return ResourceRequestHandler()
         }
 
@@ -257,21 +271,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 frame: CefFrame?,
                 request: CefRequest?
             ): CefResourceHandler {
-                if (request?.url?.contains("/validate") == false) {
-                    return super.getResourceHandler(browser, frame, request)
-                }
-
-                if (ReqMatcher.matchValidateReq(request?.url)) {
-                    ValidatorToolWindow.instance.hideBrowser()
-                    return super.getResourceHandler(browser, frame, request)
-                }
-
-                val resultName = ReqMatcher.matchResultReq(request?.url)
-                if (resultName != null) {
-                    return ValidatorResultResourceHandler()
-                }
-
-                return super.getResourceHandler(browser, frame, request)
+                return ValidatorResultResourceHandler()
             }
 
             class ValidatorResultResourceHandler : CefResourceHandlerAdapter() {
