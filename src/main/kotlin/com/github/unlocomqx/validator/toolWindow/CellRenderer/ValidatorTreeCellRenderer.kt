@@ -1,6 +1,5 @@
 package com.github.unlocomqx.validator.toolWindow.CellRenderer
 
-import com.github.unlocomqx.validator.toolWindow.helpers.FileHelper
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.ProjectManager
@@ -14,8 +13,6 @@ import com.intellij.ui.components.JBPanel
 import org.codehaus.jettison.json.JSONObject
 import java.awt.Component
 import java.awt.FlowLayout
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
 import java.nio.file.Path
 import javax.swing.Icon
 import javax.swing.JTree
@@ -122,11 +119,6 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
             val component = JBLabel(path).apply {
                 toolTipText = path
                 text = "<html><a href=\"file://${path}\">$path</a></html>"
-                addMouseListener(object : MouseAdapter() {
-                    override fun mouseClicked(e: MouseEvent) {
-                        FileHelper.navigateToFile(userObject)
-                    }
-                })
             }
             setIcon(icon)
             return component
@@ -143,22 +135,10 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
                 layout = FlowLayout(FlowLayout.LEFT)
                 add(JBLabel("$path:$line $message").apply {
                     toolTipText = path
-                    // apply link style
                     text = "<html>$messageWithLinks</html>"
                 })
                 add(JBLabel().apply {
                     text = "<html><a href=\"#navigate/$path:$line\">$path:$line</a></html>"
-                    cursor = java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)
-                    addMouseListener(object : MouseAdapter() {
-                        override fun mouseClicked(e: MouseEvent) {
-                            FileHelper.navigateToFile(userObject)
-                        }
-                    })
-                })
-                addMouseListener(object : MouseAdapter() {
-                    override fun mouseClicked(e: MouseEvent) {
-                        FileHelper.navigateToFile(userObject)
-                    }
                 })
             }
             setIcon(icon)
