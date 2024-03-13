@@ -1,12 +1,10 @@
 package com.github.unlocomqx.validator.toolWindow
 
 import com.github.unlocomqx.validator.LocaleBundle
-import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorDefaultTreeCellRenderer
-import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorSection
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.CodeNodesBuilder
 import com.github.unlocomqx.validator.toolWindow.NodesBuilders.FilesNodesBuilder
 import com.github.unlocomqx.validator.utils.ReqMatcher
-import com.intellij.ide.DefaultTreeExpander
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.diagnostic.LogLevel
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
@@ -19,7 +17,6 @@ import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowserBuilder
-import com.intellij.ui.treeStructure.Tree
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefCallback
@@ -37,8 +34,6 @@ import java.net.URI
 import javax.swing.BoxLayout
 import javax.swing.JButton
 import javax.swing.SwingConstants
-import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.DefaultTreeModel
 import kotlin.reflect.full.createInstance
 
 
@@ -91,7 +86,7 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             }
         }
 
-        private var results = emptyMap<String, String>()
+        private var results = mapOf<String, String>()
 
         private val browserPanel = JBPanel<JBPanel<*>>().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
@@ -106,20 +101,11 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             alignmentX = JBPanel.LEFT_ALIGNMENT
         }
 
-        private val treeModel: DefaultTreeModel =
-            DefaultTreeModel(DefaultMutableTreeNode("Results"))
-        private val myTree: Tree = Tree().apply {
-            model = treeModel
-            cellRenderer = ValidatorDefaultTreeCellRenderer()
-        }
-
         private val myTabbedPane = JBTabbedPane(SwingConstants.LEFT).apply {
             alignmentX = JBTabbedPane.LEFT_ALIGNMENT
-            tabLayoutPolicy = JBTabbedPane.SCROLL_TAB_LAYOUT
             sections.forEach { (_, value) ->
                 addTab(value, JBPanel<JBPanel<*>>().apply {
                     layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                    alignmentX = JBPanel.LEFT_ALIGNMENT
                 })
             }
         }
@@ -153,13 +139,28 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                         browser.cefBrowser.loadURL(LocaleBundle.message("validator_url"))
                         showBrowser()
                         clearResults()
-                        initTreeModel()
+                        resetTabs()
                     }
                 }, GridBagConstraints().apply {
                     anchor = GridBagConstraints.NORTHWEST
                 })
 
-                add(JBScrollPane(myTree).apply {
+                add(JButton().apply {
+                    text = LocaleBundle.message("reload")
+                    addActionListener {
+                        resetTabs()
+                        sections.forEach { (key) ->
+                            val result = results[key]
+                            if (result != null) {
+                                addResult(key, result)
+                            }
+                        }
+                    }
+                }, GridBagConstraints().apply {
+                    anchor = GridBagConstraints.NORTHWEST
+                })
+
+                add(JBScrollPane(myTabbedPane).apply {
                     isVisible = true
                 }, GridBagConstraints().apply {
                     anchor = GridBagConstraints.NORTHWEST
@@ -168,28 +169,8 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                     weighty = 1.0
                     gridx = 0
                 })
-
-                initTreeModel()
             }
             add(resultsPanel)
-        }
-
-        private fun initTreeModel() {
-            val root = treeModel.root as DefaultMutableTreeNode
-            root.removeAllChildren()
-
-            treeModel.reload()
-
-            sections.forEach { (_, value) ->
-                val sectionNode = DefaultMutableTreeNode(ValidatorSection(value, "idle"))
-                root.insert(
-                    sectionNode,
-                    treeModel.getChildCount(treeModel.root)
-                )
-            }
-
-            val expander = DefaultTreeExpander(myTree)
-            expander.expandAll()
         }
 
         fun hideBrowser() {
@@ -207,33 +188,27 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
                 return
             }
 
-            results.plus(Pair(name, result))
+            results = results + (name to result)
 
-            // update section state
-            val sectionNode = treeModel.getChild(treeModel.root, sections.keys.indexOf(name)) as DefaultMutableTreeNode
-            val section = sectionNode.userObject as ValidatorSection
-            section.state = if (result == "[]") "success" else "error"
-            treeModel.nodeChanged(sectionNode)
+            myTabbedPane.setIconAt(
+                sections.keys.indexOf(name),
+                if (result == "[]") AllIcons.General.InspectionsOK else AllIcons.General.Error
+            )
 
             if (result == "[]") {
                 return
             }
 
             try {
+                val sectionTab = myTabbedPane.getComponentAt(sections.keys.indexOf(name)) as JBPanel<*>
                 val jsonObject = JSONObject(result)
                 val builder = treeNodesBuilders[name]
                 if (builder != null) {
                     val builderInstance = builder.createInstance()
-                    val nodes = builderInstance.buildNodes(name, jsonObject)
-                    val root = treeModel.root as DefaultMutableTreeNode
-                    val sectionNode = treeModel.getChild(root, sections.keys.indexOf(name)) as DefaultMutableTreeNode
+                    val nodes = builderInstance.buildComponents(name, jsonObject)
                     nodes.forEach {
-                        sectionNode.insert(
-                            it,
-                            treeModel.getChildCount(sectionNode)
-                        )
+                        sectionTab.add(it)
                     }
-                    treeModel.reload()
                 }
             } catch (e: Exception) {
                 thisLogger().warn("Error while parsing result", e)
@@ -244,19 +219,26 @@ class ValidatorToolWindowFactory : ToolWindowFactory {
             results = emptyMap<String, String>()
         }
 
+        private fun resetTabs() {
+            for (i in 0 until myTabbedPane.tabCount) {
+                myTabbedPane.setIconAt(i, null)
+                val sectionTab = myTabbedPane.getComponentAt(i) as JBPanel<*>
+                sectionTab.removeAll()
+            }
+        }
+
         fun setState(state: String) {
-            myTree.setPaintBusy(state == "loading")
+//            myTabbedPane.setPaintBusy(state == "loading")
         }
 
         fun setSectionLoading(resultName: String, loading: Boolean) {
             if (sections.keys.indexOf(resultName) == -1) {
                 return
             }
-            val sectionNode =
-                treeModel.getChild(treeModel.root, sections.keys.indexOf(resultName)) as DefaultMutableTreeNode
-            val section = sectionNode.userObject as ValidatorSection
-            section.state = if (loading) "loading" else "idle"
-            treeModel.nodeChanged(sectionNode)
+            myTabbedPane.setIconAt(
+                sections.keys.indexOf(resultName),
+                if (loading) AllIcons.General.InlineRefresh else AllIcons.General.Error
+            )
         }
     }
 

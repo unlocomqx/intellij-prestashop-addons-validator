@@ -5,9 +5,7 @@ import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.JBColor
-import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import org.codehaus.jettison.json.JSONObject
@@ -19,6 +17,14 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeCellRenderer
 import kotlin.io.path.absolutePathString
+
+interface ValidatorItem {
+    val icon: Icon
+}
+
+interface ValidatorItemWithVirtualFile {
+    val virtualFile: VirtualFile?
+}
 
 class ValidatorSection(var label: String, var state: String) {
     val icon: Icon
@@ -33,8 +39,8 @@ class ValidatorSection(var label: String, var state: String) {
         }
 }
 
-class ValidatorMessage(var message: String, var type: String) {
-    val icon: Icon
+class ValidatorMessage(var message: String, var type: String) : ValidatorItem {
+    override val icon: Icon
         get() {
             return when (type) {
                 "error" -> AllIcons.General.Error
@@ -44,8 +50,8 @@ class ValidatorMessage(var message: String, var type: String) {
         }
 }
 
-class ValidatorFile(var path: String) : ValidatorItemWithVirtualFile {
-    val icon: Icon
+class ValidatorFile(var path: String) : ValidatorItemWithVirtualFile, ValidatorItem {
+    override val icon: Icon
         get() {
             return FileTypeManager.getInstance().getFileTypeByFileName(path).icon
         }
@@ -57,12 +63,8 @@ class ValidatorFile(var path: String) : ValidatorItemWithVirtualFile {
         }
 }
 
-interface ValidatorItemWithVirtualFile {
-    val virtualFile: VirtualFile?
-}
-
-class ValidatorLine(var jsonObject: JSONObject) : ValidatorItemWithVirtualFile {
-    val icon: Icon
+class ValidatorLine(var jsonObject: JSONObject) : ValidatorItemWithVirtualFile, ValidatorItem {
+    override val icon: Icon
         get() {
             return when (jsonObject.get("type")) {
                 "error" -> AllIcons.General.Error
@@ -168,90 +170,5 @@ class ValidatorDefaultTreeCellRenderer : DefaultTreeCellRenderer() {
             }
         }
         return messageWithLinks
-    }
-}
-
-class ValidatorTreeCellRenderer : ColoredTreeCellRenderer() {
-    override fun customizeCellRenderer(
-        tree: JTree,
-        value: Any?,
-        selected: Boolean,
-        expanded: Boolean,
-        leaf: Boolean,
-        row: Int,
-        hasFocus: Boolean
-    ) {
-        val treeNode = value as DefaultMutableTreeNode
-        val userObject = treeNode.userObject
-        if (userObject is String) {
-            append(userObject)
-            return
-        }
-
-        if (userObject is ValidatorSection) {
-            append(userObject.label)
-            icon = userObject.icon
-            return
-        }
-
-        if (userObject is ValidatorMessage) {
-            append(userObject.message)
-            icon = userObject.icon
-        }
-
-        if (userObject is ValidatorFile) {
-            val virtualFile = userObject.virtualFile
-            append(
-                userObject.path,
-                if (virtualFile != null) SimpleTextAttributes.LINK_ATTRIBUTES else SimpleTextAttributes.SIMPLE_CELL_ATTRIBUTES
-            )
-            icon = userObject.icon
-            if (virtualFile != null) {
-                setToolTipText(virtualFile.path)
-            }
-        }
-
-        if (userObject is ValidatorLine) {
-            val jsonObject = userObject.jsonObject
-            val path = jsonObject.getString("file")
-            val line = jsonObject.getInt("line")
-            val virtualFile = userObject.virtualFile
-            val message = jsonObject.getString("message")
-            val messagesWithLinks = getReadMoreFragments(message)
-            messagesWithLinks.forEach {
-                if (it.contains("href")) {
-                    appendHTML(it, SimpleTextAttributes.LINK_BOLD_ATTRIBUTES)
-                } else {
-                    append(it, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                }
-            }
-            append(
-                "$path:$line",
-                if (virtualFile != null) SimpleTextAttributes.LINK_ATTRIBUTES else SimpleTextAttributes.SIMPLE_CELL_ATTRIBUTES
-            )
-            icon = userObject.icon
-            if (virtualFile != null) {
-                setToolTipText(virtualFile.path)
-            }
-        }
-    }
-
-    private fun getReadMoreFragments(message: String?): Array<String> {
-        if (message == null) {
-            return arrayOf("")
-        }
-
-        val matches = Regex("\\w+").findAll(message)
-        val fragments = mutableListOf<String>()
-        for (match in matches) {
-            // if contains underscore, it's a link
-            if (match.value.contains("_")) {
-                val link = "https://cs.symfony.com/doc/rules/operator/${match.value}.html"
-                fragments.add("<html><a href=\"${link}\" title=\"ABC\">${match.value}</a></html>&nbsp;")
-            } else {
-                fragments.add(match.value + " ")
-            }
-        }
-        return fragments.toTypedArray()
     }
 }
