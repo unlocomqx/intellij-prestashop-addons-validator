@@ -5,6 +5,7 @@ import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorItem
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorLine
 import com.github.unlocomqx.validator.toolWindow.CellRenderer.ValidatorMessage
 import com.github.unlocomqx.validator.toolWindow.helpers.FileHelper
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.util.ui.JBEmptyBorder
@@ -13,8 +14,10 @@ import java.awt.Component
 import java.awt.Cursor
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.BorderFactory
 import javax.swing.BoxLayout
 import javax.swing.SwingConstants
+import javax.swing.border.CompoundBorder
 
 interface NodesBuilder {
     fun buildComponents(name: String, jsonObject: JSONObject): MutableList<Component>
@@ -150,7 +153,10 @@ private fun createValidatorNode(validatorItem: ValidatorItem): JBPanel<JBPanel<*
 class ValidatorNode : JBPanel<JBPanel<*>>() {
     init {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
-        border = JBEmptyBorder(5, 5, 5, 5)
+        border = CompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
+            JBEmptyBorder(5, 5, 10, 5),
+        )
     }
 }
 
