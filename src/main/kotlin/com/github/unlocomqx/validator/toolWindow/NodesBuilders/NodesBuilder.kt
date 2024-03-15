@@ -122,13 +122,14 @@ private fun createValidatorNode(validatorItem: ValidatorItem): JBPanel<JBPanel<*
         val path = jsonObject.getString("file")
         val line = jsonObject.getInt("line")
         val message = jsonObject.getString("message")
-        val messageWithLinks = replaceHintsWithLinks(message)
-        val icon = validatorItem.icon
+        val labelsWithLinks = getLabelsWithLinks(message)
         val component = ValidatorNode().apply {
             add(JBLabel().apply {
                 alignmentX = Component.LEFT_ALIGNMENT
                 toolTipText = path
-                text = "<html>$messageWithLinks</html>"
+                labelsWithLinks.forEach {
+                    text = it
+                }
             })
             add(JBLabel().apply {
                 alignmentX = Component.LEFT_ALIGNMENT
@@ -160,24 +161,36 @@ class ValidatorNode : JBPanel<JBPanel<*>>() {
     }
 }
 
-fun replaceHintsWithLinks(message: String?): String {
+fun getLabelsWithLinks(message: String?): MutableList<String> {
     if (message == null) {
-        return ""
+        return mutableListOf()
     }
 
-    var messageWithLinks: String = message
+    val labels = mutableListOf<String>()
+    var phrase = mutableListOf("")
     // match words containing an underscore or more
     val matches = Regex("\\w+").findAll(message)
     for (match in matches) {
         // if contains underscore, it's a link
         if (match.value.contains("_")) {
+            if (phrase.isNotEmpty()) {
+                labels.add(phrase.joinToString(" "))
+                phrase = mutableListOf()
+            }
             val link = "https://cs.symfony.com/doc/rules/operator/${match.value}.html"
-            messageWithLinks =
-                messageWithLinks.replace(
+            labels.add(
+                match.value.replace(
                     match.value,
-                    "<a href=\"${link}\" target=\"_blank\">${match.value}</a>"
+                    "<html><a href=\"${link}\" target=\"_blank\">${match.value}</a></html>"
                 )
+            )
+        } else {
+            phrase.add(match.value)
         }
     }
-    return messageWithLinks
+
+    if (phrase.isNotEmpty()) {
+        labels.add(phrase.joinToString(" "))
+    }
+    return labels
 }
